@@ -1,141 +1,50 @@
-# Day 1 Cheat Sheet — Intro to Linux
+## Common PowerShell Commands
 
-## Key Commands
+| CMDlet          | Function                                         | Equivalent Command     |
+| --------------- | ------------------------------------------------ | ---------------------- |
+| `Set-Location`  | Changes to specified directory                   | `cd`                   |
+| `Get-ChildItem` | Return current directory contents             | `ls`, `dir`            |
+| `New-Item`      | Makes a new directory                            | `mkdir`                |
+| `Remove-Item`   | Deletes a file or directory                      | `rm`, `rmdir`          |
+| `Get-Location`  | Retrieves path to current directory              | `pwd`                  |
+| `Get-Content`   | Returns file contents                            | `cat`, `type`          |
+| `Copy-Item`     | Copies a file from one given location to another | `cp`                   |
+| `Move-Item`     | Moves a file from one given location to another  | `mv`                   |
+| `Write-Output`  | Prints output                                    | `echo`                 |
+| `Get-Alias`     | Shows aliases for the current session           | `alias`                |
+| `Get-Help`      | Retrieves information about PowerShell commands  | `man`                  |
+| `Get-Process`   | Gets processes running on local machine          | `ps`                   |
+| `Stop-Process`  | Stops one or more defined process(es)            | `kill`                 |
+| `Get-Service`   | Gets a list of services                          | `service --status-all` |
 
-### Essential Command Line
-Below are examples of the most important basic Linux CLI tools.
+### How to Use Documentation and Find Commands
 
-#### Creating Files and Directories
-To create a new, empty file, run:
+To find documentation on a cmdlet:
 
-  ```bash
-  touch <filename>
-  ```
+- `Get-Help {cmdlet}`
 
-To create a new, empty directory, run:
+  - To find documentation on `Set-Location`:
 
-  ```bash
-  mkdir <dirname>
-  ```
+     `Get-Help Set-Location`
 
-To make a new tree of directories, run:
+To find specific examples:
 
-  ```bash
-  mkdir -p lots/of/new/directories
-  ```
+- `Get-Help {cmdlet} -examples`
 
-#### Listing Files
-To list files in a given directory, run:
+To find cmdlets by noun:
 
-  ```bash
-  # List all files in ~/Documents, with human-readable file sizes
-  ls -shal ~/Documents
-  ```
+- `Get-Command -Type Cmdlet | Sort-Object -Property Noun | Format-Table -GroupBy Noun`
 
-<details>
-  <summary>Expand for Explanations of Flags</summary>
-  <ul>
-    <li><code>-sh</code> lists file sizes in human-readable format
-    <li><code>-a</code> lists all files, including hidden ones
-    <li><code>-l</code> lists additional information, such as file owner; modified datetime; and size.
-  </ul>
-</details>
+To find cmdlets by verb:
 
-#### Copying and Moving Files
-To copy a file from one location to another, use `cp`:
+- `Get-Command -Type Cmdlet | Sort-Object -Property Verb | Format-Table -GroupBy Verb`
 
-  ```bash
-  # Copies ~/Documents/secrets.txt to ~/Documents/private/secrets.txt
-  cp ~/Documents/secrets.txt ~/Documents/private
-  ```
+#### Wildcards
 
-To move a file from one location to another, use `mv`. This command is also used to rename files.
+To find by noun:
 
-  ```bash
-  # Moves ~/Documents/secrets.txt to ~/Documents/private/secrets.txt
-  mv ~/Documents/secrets.txt ~/Documents/private
+- `Get-Command -Noun {noun}`
 
-  # Renames `old.txt` to `new.txt`
-  mv old.txt new.txt
-  ```
+To find by verb:
 
-#### Removing Files and Directories
-To remove a file, use `rm`. To remove an empty directory, use `rmdir`.
-
-  ```bash
-  # Removes old.txt
-  rm old.txt
-
-  # Removes EmptyFolder
-  rmdir EmptyFolder
-  ```
-
-To remove a directory and all of its contents, use `rm -r`. This will prompt you whenever it tries to remove non-empty directories.
-
-  ```bash
-  # Removes ~/Documents
-  rm -r ~/Documents
-  ```
-
-To remove a directory and all of its contents _without_ safety prompts, use `rm -rf`. **Be careful with this command**—it's irrevocable.
-
-  ```bash
-  # Removes ~/Documents, does not prompt user
-  rm -rf ~/Documents
-  ```
-
-#### Creating and Extracting Archives
-To create a tarball, run: `tar cvf <Archive Name> <File List>`
-
-  ```bash
-  # Creates archive.tar from ~/Documents
-  tar cvf archive.tar ~/Documents
-
-  # Creates archive.tar from `file.one` and `file.two`
-  tar cvf archive.tar file.one file.two
-  ```
-
-To extract a tarball, run: `tar xvf <Archive Name>`
-
-  ```bash
-  # Unpack `archive.tar`
-  tar xvf archive.tar
-  ```
-
-#### Listing Processes
-To list processes started by the current user, run `ps`.
-
-To list all processes, run `ps aux`.
-
-To kill a process, run `kill <PID>`.
-
-To kill all processes with a given name, such as `python`, run: `killall <Process Name>`.
-
-  ```bash
-  # Kills all `apache2` servers
-  killall apache2
-  ```
-
-#### Installing Packages
-To update PPAs, use `apt update`.
-
-  ```bash
-  # Note: Run with `sudo` when a normal user
-  sudo apt update
-  ```
-
-To install new packages, use `apt install <packages>`.
-
- 
-  ```bash
-  # Note: Run with `sudo` when a normal user
-  sudo apt install vim gedit
-  ```
-
-To remove a package, use `apt remove <package>`. You should also run `apt autoremove` right after to clean up properly.
-
-  ```bash
-  # Note: Run with `sudo` when a normal user
-  sudo apt remove vim gedit
-  sudo apt autoremove
-  ```
+- `Get-Command -Verb {verb}`
